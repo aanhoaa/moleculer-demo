@@ -33,6 +33,7 @@ module.exports = {
 		use: [],
 		path: "/api",
 		routes: [
+			//user
 			{
 				
 				path: "/users",
@@ -106,6 +107,7 @@ module.exports = {
 
 				
 			},
+			//category
 			{
 				path: "/category",
 
@@ -179,6 +181,7 @@ module.exports = {
 					res.end("Route error: " + err.message);
 				}	
 			},
+			//product
 			{
 				path: "/product",
 
@@ -224,6 +227,11 @@ module.exports = {
 						this.updateProduct(req, res)
 					},
 
+					"POST import/create": "product.importGoods",
+					"PUT import/confirm": "product.confirmImportGoods",
+					"GET import/list": "product.listImportGood",
+					"GET import/list/detail": "product.listImportGoodDetail",
+
 
 					"custom"(req, res) { 
 						res.writeHead(201);
@@ -245,16 +253,8 @@ module.exports = {
 				},
 				onBeforeCall(ctx, route, req, res) {
 					this.logger.info("onBeforeCall in protected route");
-					//ctx.meta.cookie= req.headers.cookie
 					req.headers.authorization = req.headers.cookie;
 				},
-
-				// onAfterCall(ctx, route, req, res, data) {
-				// 	this.logger.info("onAfterCall in protected route");
-				// 	res.setHeader("X-Response-Type", typeof(data));
-
-				// 	return data;
-				// },
 
 				// Route error handler
 				onError(req, res, err) {
@@ -264,6 +264,7 @@ module.exports = {
 				},
 				
 			},
+			//util
 			{
 				path: "/util",
 
@@ -332,6 +333,7 @@ module.exports = {
 					res.end("Route error: " + err.message);
 				}	
 			},
+			//upload
 			{
 				
 				path: "/upload",
@@ -372,6 +374,7 @@ module.exports = {
 
 				mappingPolicy: "restrict" 
 			},
+			//auth
 			{
 				// Path prefix to this route
 				path: "/",
@@ -435,6 +438,76 @@ module.exports = {
 					});
 				},
 			},
+			//supplier
+			{
+				path: "/supplier",
+
+				// Whitelist of actions (array of string mask or regex)
+				whitelist: [
+					"supplier.*",
+					"$node.*"
+				],
+
+				// Route CORS settings
+				cors: {
+					origin: ["https://localhost:3000", "https://localhost:4000"],
+					methods: ["GET", "OPTIONS", "POST"],
+					
+				},
+				cors: true,
+				// Disable to call not-mapped actions
+				mappingPolicy: "restrict",
+
+				// tạm thời đang tắt để dev
+				//authorization: true,
+
+				roles: ["admin"],
+
+				// Action aliases
+				aliases: {
+					"POST create": "supplier.create",
+					
+					
+					
+					"custom"(req, res) {
+						res.writeHead(201);
+						res.end();
+					}
+				},
+				autoAliases: true,
+
+				// Use bodyparser module
+				bodyParsers: {
+					json: {
+						strict: false
+					},
+					urlencoded: {
+						extended: false
+					}
+				},
+				
+				onBeforeCall(ctx, route, req, res) {
+					this.logger.info("onBeforeCall in protected route");
+					//ctx.meta.cookie= req.headers.cookie
+					req.headers.authorization = req.headers.cookie;
+				},
+
+				onAfterCall(ctx, route, req, res, data) {
+					this.logger.info("onAfterCall in protected route");
+					res.setHeader("Access-Control-Allow-Origin", "*");
+					res.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Authorization, Content-Type, Accept");
+
+					return data;
+				},
+
+				// Route error handler
+				onError(req, res, err) {
+					res.setHeader("Content-Type", "text/plain");
+					res.writeHead(err.code || 500);
+					res.end("Route error: " + err.message);
+				}	
+			},
+
 			
 		],
 
