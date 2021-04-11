@@ -86,7 +86,6 @@ module.exports = {
 				
 				onBeforeCall(ctx, route, req, res) {
 					this.logger.info("onBeforeCall in protected route");
-					//ctx.meta.cookie= req.headers.cookie
 					req.headers.authorization = req.headers.cookie;
 				},
 
@@ -188,6 +187,7 @@ module.exports = {
 				// Whitelist of actions (array of string mask or regex)
 				whitelist: [
 					"product.*",
+					"greeter.*",
 					"$node.*"
 				],
 
@@ -217,10 +217,11 @@ module.exports = {
 
 				// Action aliases
 				aliases: {
-					"POST create": "product.create",
-					//"POST variant/create": "product.addProductVariant",
-					
-					"POST variant/create"(req, res) {
+					// for test
+					"POST hello": "greeter.hello",
+					//
+					//"POST create": "product.create",
+					"POST /create"(req, res) {
 						this.createProduct(req, res)
 					},
 					"POST variant/update"(req, res) {
@@ -254,6 +255,14 @@ module.exports = {
 				onBeforeCall(ctx, route, req, res) {
 					this.logger.info("onBeforeCall in protected route");
 					req.headers.authorization = req.headers.cookie;
+				},
+
+				onAfterCall(ctx, route, req, res, data) {
+					this.logger.info("onAfterCall in protected route");
+					res.setHeader("Access-Control-Allow-Origin", "*");
+					res.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Authorization, Content-Type, Accept");
+
+					return data;
 				},
 
 				// Route error handler
@@ -389,6 +398,7 @@ module.exports = {
 				// Whitelist of actions (array of string mask or regex)
 				whitelist: [
 					"auth.*",
+					"users.*",
 					"file.*",
 					"test.*",
 					/^math\.\w+$/
@@ -403,6 +413,7 @@ module.exports = {
 				aliases: {
 					"POST login": "auth.login",
 					"POST register": "auth.register",
+					"GET verified/:username/:cftk": "users.verified",
 					"add": "math.add",
 					"add/:a/:b": "math.add",
 					"GET sub": "math.sub",
@@ -466,6 +477,76 @@ module.exports = {
 				// Action aliases
 				aliases: {
 					"POST create": "supplier.create",
+					
+					
+					
+					"custom"(req, res) {
+						res.writeHead(201);
+						res.end();
+					}
+				},
+				autoAliases: true,
+
+				// Use bodyparser module
+				bodyParsers: {
+					json: {
+						strict: false
+					},
+					urlencoded: {
+						extended: false
+					}
+				},
+				
+				onBeforeCall(ctx, route, req, res) {
+					this.logger.info("onBeforeCall in protected route");
+					//ctx.meta.cookie= req.headers.cookie
+					req.headers.authorization = req.headers.cookie;
+				},
+
+				onAfterCall(ctx, route, req, res, data) {
+					this.logger.info("onAfterCall in protected route");
+					res.setHeader("Access-Control-Allow-Origin", "*");
+					res.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Authorization, Content-Type, Accept");
+
+					return data;
+				},
+
+				// Route error handler
+				onError(req, res, err) {
+					res.setHeader("Content-Type", "text/plain");
+					res.writeHead(err.code || 500);
+					res.end("Route error: " + err.message);
+				}	
+			},
+			//admin
+			{
+				path: "/admin",
+
+				// Whitelist of actions (array of string mask or regex)
+				whitelist: [
+					"admin.*",
+					"$node.*"
+				],
+
+				// Route CORS settings
+				cors: {
+					origin: ["https://localhost:3000", "https://localhost:4000"],
+					methods: ["GET", "OPTIONS", "POST"],
+					
+				},
+				cors: true,
+				// Disable to call not-mapped actions
+				mappingPolicy: "restrict",
+
+				// tạm thời đang tắt để dev
+				authorization: true,
+
+				roles: ["admin"],
+
+				// Action aliases
+				aliases: {
+					"POST create": "admin.create",
+					//"POST login": "admin.login",
 					
 					
 					
@@ -577,34 +658,62 @@ module.exports = {
 		 * @returns {Promise}
 		 */
 		authorize(ctx, route, req) {
-			let token;
-			if (req.headers.authorization) {
-				this.logger.info(req.headers.authorization);
-				let type = req.headers.authorization.split(" ")[0];
-				if (type === "Token") {
-					token = req.headers.authorization.split(" ")[1];
+			let authToken;
+			const authHeader = req.headers.authorization;
+			if (authHeader) {
+			const [type, value] = authHeader.split(' ');
+			if (type === 'Token' || type === 'Bearer') {
+				authToken = value;
+			}
+			}
+			
+			return this.Promise.resolve(authToken)
+			.then((token) => {
+				if (token) {
+				// Verify JWT token
+				return ctx
+					.call('auth.resolveToken', { token })
+					.then((user) => {
+					if (user) {
+						this.logger.debug('Authenticated via JWT: ', user.username);
+						const { id, username } = user;
+						ctx.meta.user = {
+						id,
+						username,
+						};
+						ctx.meta.token = token;
+					}
+					return user;
+					})
+					.catch((err) => {
+					this.logger.warn(err);
+					return null;
+					});
 				}
-			}
-			if (!token) {
-				return Promise.reject(new UnAuthorizedError(ERR_NO_TOKEN));
-			}
-			// Verify JWT token
-			return ctx.call("auth.resolveToken", { token })
-				.then(user => {
-					if (!user)
-						return Promise.reject(new UnAuthorizedError(ERR_INVALID_TOKEN));
-
-					ctx.meta.user = user;
-				});
+				return null;
+			})
+			.then((user) => {
+				if (req.$endpoint.action.roles === 'user' && user != 'user') {
+					return this.Promise.reject(new UnAuthorizedError());
+				}
+				if (req.$endpoint.action.roles === 'admin' && user != "admin") {
+					return this.Promise.reject(new UnAuthorizedError());
+				}
+				
+				return this.Promise.resolve(user);
+			});
 		},
 
 		async createProduct(req, res){
 			try {
 				let data = await this.uploadFile(req, res);
-				let { name, product_id, description, SKU } = data.body;
+				let { name, description, cate2, cate3, brand, SKU, loop, 
+					  color, price, stock, sku
+				} = data.body;
 				let arrImg = [];
 				let arrImgData = [];
-			
+				
+				
 				// xử lý phần upload file (3 file )
 				//console.log('trace:', data.files['img1'])
 				if(data.files && data.files['img1']) {
@@ -612,14 +721,24 @@ module.exports = {
 					if (data.files['img2']) arrImg.push(data.files['img2'][0].path);
 					if (data.files['img3']) arrImg.push(data.files['img3'][0].path);
 					
-					for (let i = 0; i < arrImg.length; i++) {
-						const result =  await cloudinary.v2.uploader.upload(arrImg[i]);
-						arrImgData.push(result.secure_url);
-					}
+					// for (let i = 0; i < arrImg.length; i++) {
+					// 	const result =  await cloudinary.v2.uploader.upload(arrImg[i]);
+					// 	arrImgData.push(result.secure_url);
+					// }
 					
-					let data2 = await dbUser.productVariantAdd([product_id, name, description, SKU, arrImgData]);
+					
 					let send = {status: true,message: "succes", data: data2};
 					res.end(JSON.stringify(send))
+
+					//handle 
+					for (let i = 0; i < loop; i++) {
+						let data2 = await dbUser.productVariantAdd([
+							name, description, 
+							cate2, cate3, brand,
+							color[i], price[i], stock[i], sku[i]
+						]);
+					}
+					
 				} else{
 					let send = {status: false,message: "Photos must not be empty" , data: []};
 					res.end(JSON.stringify(send))

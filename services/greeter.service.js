@@ -11,9 +11,11 @@ module.exports = {
 	 * Settings
 	 */
 	settings: {
-
+		entityValidator: {
+			username: { type: "string", min: 8 },
+			password: { type: "string", min: 6 },
+		}
 	},
-
 	/**
 	 * Dependencies
 	 */
@@ -31,11 +33,15 @@ module.exports = {
 		 */
 		hello: {
 			rest: {
-				method: "GET",
+				method: "POST",
 				path: "/hello"
 			},
-			async handler() {
-				return "Hello Moleculer";
+			params: {
+				username: { type: "string", min: 8 },
+				password: { type: "string", min: 6 },
+			},
+			 handler(ctx) {
+				return 1;
 			}
 		},
 

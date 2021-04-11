@@ -105,7 +105,20 @@
 		Insert category
 	  </li> -->
 
-
+	  <!-- <fieldset>
+		<legend>Single file upload</legend>
+		<form action="/api/login" method="post">
+			<p>email</p>
+			<input type="text" name="username">
+			
+			<p>password</p>
+			<input type="text" name="password">
+			
+		
+			<br/>
+			<input type="submit" value="Create" name="submit">
+		</form>
+	</fieldset> -->
 
 	  <fieldset>
 		<legend>Single file upload</legend>
@@ -172,43 +185,65 @@
 		</form>
 	</fieldset> -->
 	<fieldset>
-		<legend>import goods</legend>
-		<form action="/api/product/import/create" method="post">
-			<div style="float: left;">
-				<p>hàng hóa1:</p>
-				<input type="text" name="id">
-				<p>Số lượng:</p>
-				<input type="text" name="amount">
-				<p>Giá nhập:</p>
-				<input type="text" name="priceimport">
-				<p>thành tiền:</p>
-				<input type="text" name="totalMoney">
-				<p>Giá bán mới:</p>
-				<input type="text" name="price">
-				<p>hàng hóa2:</p>
-				<input type="text" name="id">
-				<p>Số lượng:</p>
-				<input type="text" name="amount">
-				<p>Giá nhập:</p>
-				<input type="text" name="priceimport">
-				<p>thành tiền:</p>
-				<input type="text" name="totalMoney">
-				<p>Giá bán mới:</p>
-				<input type="text" name="price">
-			</div>
-			<div style="float: right">
-				<p>ncc:</p>
-				<input type="text" name="supplier_id">
-				<p>loại thanh toán:</p>
-				<input type="text" name="paymentForm">
-				<p>ngày :</p>
-				<input type="text" name="deleveryDate">
-				<p>tổng tiền:</p>
-				<input type="text" name="totalPrice">
-				<p>status:</p>
-				<input type="text" name="status">
-				<p>hàng hóa1:</p>
-			</div>
+		<legend>create product</legend>
+		<form action="/api/product/create" method="post">
+			<p>name:</p>
+			<input type="text" name="name">
+			<p>description:</p>
+			<input type="text" name="description">
+			<p>cate2:</p>
+			<input type="text" name="cate2">
+			<p>cate3:</p>
+			<input type="text" name="cate3">
+			<p>brand:</p>
+			<input type="text" name="brand">
+			<p>price:</p>
+			<!-- <input type="text" name="price">
+			<p>stock:</p>
+			<input type="text" name="stock"> -->
+
+			<p>loop:</p>
+			<input type="text" name="loop">
+
+			<p>attr 1:</p>
+			<input type="text" name="attr">
+			<p>attr 2:</p>
+			<input type="text" name="attr">
+
+			<p>value 11:</p>
+			<input type="text" name="value">
+			<p>value 12:</p>
+			<input type="text" name="value">
+			<p>giá 1:</p>
+			<input type="text" name="price">
+			<p>kho 1:</p>
+			<input type="text" name="stock">
+			<p>sku 1:</p>
+			<input type="text" name="sku">
+			
+			
+			<p>value 21:</p>
+			<input type="text" name="value">
+			<p>value 22:</p>
+			<input type="text" name="value">
+			<p>giá 2:</p>
+			<input type="text" name="price">
+			<p>kho 2:</p>
+			<input type="text" name="stock">
+			<p>sku 2:</p>
+			<input type="text" name="sku">
+			
+			<p>img1:</p>
+			<input type="file" name="img1">
+			<p>img2:</p>
+			<input type="file" name="img2">
+			<p>img3:</p>
+			<input type="file" name="img3">
+
+			<p>img p1:</p>
+			<input type="file" name="imgp1">
+			<p>img p2:</p>
+			<input type="file" name="imgp2">
 			
 			<br/>
 			<input type="submit" value="Create" name="submit">

@@ -2,16 +2,11 @@
 const  jwt  = require('jsonwebtoken');
 const _ 					= require("lodash");
 const { promisify }			= require("util");
-const { MoleculerError } 	= require("moleculer").Errors;
-
+const { MoleculerClientError  } 	= require("moleculer").Errors;
+const bcrypt = require('bcrypt');
 const JWT_SECRET = "TOP SECRET!!!";
 const REFRESH_JWTSECRET = "REFRESH TOP SECRET!!!";
-
-// Fake user DB
-const users = [
-	{ id: 1, username: "admin", password: "admin", role: "admin" },
-	{ id: 2, username: "test", password: "test", role: "user" }
-];
+const dbUser = require('../lib/helpers');
 
 module.exports = {
 	name: "auth",
@@ -34,46 +29,100 @@ module.exports = {
 	actions: {
         // login
         login: {
-			rest: "/login",
+			rest: "POST /",
 			params: {
-				username: 'string',
+				username: { type: "string", min: 4 },
 				password: 'string'
 			},
 			handler(ctx) {
-				let user = users.find(u => u.username == ctx.params.username && u.password == ctx.params.password);
-				const { username, password } = ctx.params;
-				return this.Promise.resolve()
-				.then(() => ctx.call('users.getUser', { username }))
-				.then((user) => {
+				const {username, password} = ctx.params;
+				return ctx.call('users.getUser', {username})
+				.then(user => {
+					console.log('user:', user)
 					if (!user) {
-						return this.Promise.reject(new MoleculerError("Invalid credentials", 400));
+						if (!user.data)
+							return this.Promise.reject(new MoleculerClientError ("Username is invalid", 400));
 					}
 					
-					const tokenRefresh = jwt.sign(user, REFRESH_JWTSECRET);
-					ctx.meta.$responseHeaders = {
+					return bcrypt.compare(password, user.password).then((res2) => {
+						if (!res2) {
+							return this.Promise.reject(
+								new MoleculerClientError(
+								  'Username or password is invalid!',
+								  422,
+								  '',
+								  [{ field: 'password', message: 'is not valid' }],
+								),
+							  );
+						}
+
+						if (user.isverified === 0) {
+							return ctx.call('mailer.send', {
+								to: ctx.params.email,
+								subject: "Hello Mailer",
+								html: `<a href="http://localhost:3000/api/verified/${username}/${user.tokenconfirm}">Click vào đây để xác nhận email</a>`
+							})
+							.then(() => {
+								return this.Promise.reject(
+									new MoleculerClientError(
+									  'Your account is not verify',
+									  422,
+									  '0',
+									  [{ field: 'Verified', message: 'is not verified yet' }],
+									),
+								);
+							})
+						}
+						
+						//token
+						const tokenRefresh = jwt.sign(user, REFRESH_JWTSECRET);
+						ctx.meta.$responseHeaders = {
 						'Set-Refresh': ` Refesh${12};Path=/;Max-Age=${Number(60*60)}`,
-					};
+						};
 
-					const token = this.addToken(user, ctx.meta.user);
-					ctx.meta.$responseHeaders = {
-						'Set-Cookie': `Token ${token.token};Path=/;Max-Age=${Number(60) *
+						const token = this.addToken(user, ctx.meta.user);
+						ctx.meta.$responseHeaders = {
+						'Set-Cookie': `Token="Token ${token.token};Path=/;Max-Age=${Number(60) *
 							60}`,
-					};
+						};
 
-					return token;
-				});	
+						return token;
+						});
+				})
+				
 			}
 		},
 
 		//register
 		register: {
-			rest: "/register",
+			rest: " POST /",
 			params: {
 				username: 'string',
 				email: 'string',
+				password: 'string',
+				confirmpassword: 'string'
 			},
 			handler(ctx) {
-				return ctx.call('users.create', {username: ctx.params.username, email: ctx.params.email});
+				const hashToken = this.makeid(12);
+
+				return ctx.call('users.create', {
+					username: ctx.params.username, 
+					email: ctx.params.email, 
+					password: ctx.params.password, 
+					tokenconfirm: hashToken
+				})
+				.then(res => {
+					if (res.data.type != 0) {
+						return ctx.call('auth.login', {
+							username: ctx.params.username, 
+							password: ctx.params.password,
+							email: ctx.params.email,
+							tokenconfirm: hashToken
+						});
+					}
+					 
+					return res.data.message;
+				})
 			}
 		},
         /**
@@ -108,7 +157,7 @@ module.exports = {
 						if (err) {
 							return reject(err);
 						}
-
+						console.log('de:', decoded)
 						// check time login - now < 5 ms => check user have refresh token? => refresh new token
 						if (
 							Math.floor((decoded.exp - new Date().getTime() / 1000) / 60) <
@@ -124,9 +173,9 @@ module.exports = {
 						}
 						resolve(decoded);
 					});
-				}).then(decoded => {
-					if (decoded.id) {
-						return users.find(u => u.id == decoded.id);
+				}).then(async decoded => {
+					if (decoded.role) {
+						return decoded.role;
 					}
 				});
 			}
@@ -140,7 +189,53 @@ module.exports = {
 				};
 				return '123';
 			}
-		}
+		},
+
+		//admin login
+		adminLogin: {
+			rest: "POST /",
+			params: {
+				username: 'string',
+				password: 'string'
+			},
+			handler(ctx) {
+				const {username, password} = ctx.params;
+				return ctx.call('admin.getAdmin', {username})
+				.then(user => {
+					if (!user) {
+						return this.Promise.reject(new MoleculerClientError ("Invalid credentials", 400));
+					}
+					
+					return bcrypt.compare(password, user.password).then((res2) => {
+						if (!res2) {
+							return this.Promise.reject(
+								new MoleculerClientError(
+								  'Username or password is invalid!',
+								  422,
+								  '',
+								  [{ field: 'password', message: 'is not valid' }],
+								),
+							  );
+						}
+						
+						//token
+						// const tokenRefresh = jwt.sign(user, REFRESH_JWTSECRET);
+						// ctx.meta.$responseHeaders = {
+						// 'Set-Refresh': ` Refesh${12};Path=/;Max-Age=${Number(60*60)}`,
+						// };
+
+						const token = this.addToken(user, ctx.meta.user);
+						ctx.meta.$responseHeaders = {
+						'Set-Cookie': `Token ${token.token};Path=/;Max-Age=${Number(60) *
+							60}`,
+						};
+
+						return token;
+						});
+				})
+				
+			}
+		},
 	},
 
 	/**
@@ -164,7 +259,10 @@ module.exports = {
 		generateToken(user) {
 			return jwt.sign(
 				// eslint-disable-next-line no-underscore-dangle
-				{ id: user.id, username: user.username },
+				{ 
+					username: user.username,
+					role: user.role
+				},
 				JWT_SECRET,
 				{ expiresIn: '5m' },
 			  );
@@ -176,15 +274,26 @@ module.exports = {
    * @param {String} token the JWT token
    */
   addToken(user, token) {
-	
     const identity = {
-     
     };
 
 	identity.token = token || this.generateToken(user);
 	
     return identity;
   },
+
+  /*
+  create token confirm email
+  */
+  makeid(length) {
+	var result           = '';
+	var characters       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+	var charactersLength = characters.length;
+	for ( var i = 0; i < length; i++ ) {
+	   result += characters.charAt(Math.floor(Math.random() * charactersLength));
+	}
+	return result;
+  }
 	},
 
 	/**

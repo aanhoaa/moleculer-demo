@@ -3,13 +3,8 @@
 const dbUser = require('../lib/helpers');
 const {reponseErrorAPI} = require('../lib/reponse.js')
 const DbService = require("moleculer-db");
+const bcrypt = require('bcrypt');
 
-const users = [
-	{ id: 1, username: "admin", password: "admin", role: "admin" },
-	{ id: 2, username: "test", password: "test", role: "user" }
-];
-
-// users.service.js
 module.exports = {
   name: "users",
   mixins: [DbService],
@@ -28,12 +23,7 @@ module.exports = {
     list: {
       // Expose as "/users/"
       rest: "GET /",
-      // async handler(ctx) {
-      //   const testDifSer = await ctx.call('greeter.hello'); // call from greeter service to users service
-      //   return '123 ' + testDifSer;
-      //   // tìm hiểu docker + dbs
-
-      // }
+      roles: 'user',
       async handler(ctx) {
        return '123';
       }
@@ -41,14 +31,18 @@ module.exports = {
 
     getUser: {
       rest: 'GET /:username',
-      
-      params: {
-        username: 'string',
-      },
+ 
       async handler (ctx) {
-        let user = users.find(u => u.username == ctx.params.username );
-        this.logger.info('user', ctx.params.username);
-        return user;
+        try {
+          const data = await dbUser.checkUserExist(2, [ctx.params.username]);
+          if (data) {
+            const data2 = await dbUser.getUserInfo(2, [ctx.params.username]);
+            return data2;
+          }
+           return reponseErrorAPI(true,"Success", data)	
+         } catch (error) {
+           return reponseErrorAPI(false,error.message, [])
+         }
       },
     },
 
@@ -61,7 +55,6 @@ module.exports = {
      async handler(ctx) {
       try {
        const data = await dbUser.checkUserName([ctx.params.username]);
-      
        return reponseErrorAPI(true,"Success", data)	
 			} catch (error) {
 				return reponseErrorAPI(false,error.message, [])
@@ -73,17 +66,34 @@ module.exports = {
       // Expose as "/users/"
       rest: "POST /",
     //  auth: 'required',
-      params: {
-        username: { type: "string" },
-        email: { type: "string" },
-      },
       async handler(ctx) {
+        const {username, email, password, tokenconfirm } = ctx.params;
+
         try {
-					let data = await dbUser.userInsert([ctx.params.username, ctx.params.email]);
-					return reponseErrorAPI(true,"Success", data)	
+            let data = await dbUser.userInsert([username, password, email, tokenconfirm]);
+            return reponseErrorAPI(true,"Success", data)
 				} catch (error) {
 					return reponseErrorAPI(false,error.message, [])
 				}
+      }
+    },
+
+    //verified user
+    verified: {
+      rest: "GET /username/:cftk",
+      async handler(ctx) {
+        const cftk = ctx.params.cftk;
+        const data = await dbUser.getUserInfo(2, [ctx.params.username])
+        
+        if (data.tokenconfirm == cftk) {
+          //change isverified
+          try {
+            const data2 = await dbUser.updateIsverified(data.id)
+            return reponseErrorAPI(true,"Success", data2)	
+          } catch (error) {
+            return reponseErrorAPI(false,error.message, [])
+          }
+        }
       }
     },
 
@@ -119,15 +129,7 @@ module.exports = {
   },
 
   methods: {
-    /**
-     * Seeding Users DB
-     */
-    // async seedDB() {
-    //   this.logger.info("Seed Users database...");
-    //   const users = await db.query("SELECT * FROM sinhvien", []);
-    //   const savedUsers = await this.adapter.insertMany(users);
-    //   this.logger.info(`Created ${savedUsers.length} users.`);
-    // }
+  
   },
   /**
 	 * Service created lifecycle event handler
@@ -140,11 +142,7 @@ module.exports = {
 	 * Service started lifecycle event handler
 	 */
 	async started() {
-    // if ((await this.adapter.count()) === 0) {
-    //   await this.seedDB();
-    // } else {
-    //   this.logger.info(`DB contains ${await this.adapter.count()} users.`);
-    // }
+  
   },
 
 	/**

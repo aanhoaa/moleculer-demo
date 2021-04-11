@@ -135,6 +135,7 @@ module.exports = {
 	   //list importgoods
 		listImportGood: {
 			rest: "GET /",
+			roles: 'admin',
 			async handler(ctx) {
 				try {
 					const data = await dbUser.getListImportGood();
@@ -160,7 +161,57 @@ module.exports = {
 					return reponseErrorAPI(false,error.message, [])
 				}
 			},
-		}
+		},
+
+		/*
+			CATEGORY HANDLE
+		*/
+		createCateLevelOne: {
+			rest: "POST /",
+			role: 'admin',
+			params: {
+				name: { type: "string" },
+				description: { type: "string" },
+			},
+			async handler(ctx) {
+				try {
+					  let data = await dbUser.cateInsert([ctx.params.name, ctx.params.description]);
+					  return reponseErrorAPI(true,"Success", data)	
+					} catch (error) {
+						return reponseErrorAPI(false,error.message, [])
+				}
+			}
+		},
+		createCateLevelTwo: {
+			rest: "POST /:id",
+			params: {
+				name: 'string',
+				description: 'string'
+			},
+			async handler(ctx) {
+				try {
+                    let data = await dbUser.insertCateLevel(2, [ctx.params.id, ctx.params.name, ctx.params.description]);
+                   	return reponseErrorAPI(true,"Success", data)	
+                    } catch (error) {
+                        return reponseErrorAPI(false,error.message, [])
+                }
+			}
+		},
+		createCateLevelThree: {
+			rest: "POST /:id",
+			params: {
+				name: 'string',
+				description: 'string'
+			},
+			async handler(ctx) {
+				try {
+                    let data = await dbUser.insertCateLevel(3, [ctx.params.id, ctx.params.name, ctx.params.description]);
+                   	return reponseErrorAPI(true,"Success", data)	
+                    } catch (error) {
+                        return reponseErrorAPI(false,error.message, [])
+                }
+			}
+		},
 
 
 	},
