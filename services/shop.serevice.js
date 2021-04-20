@@ -1,12 +1,16 @@
 "use strict";
 const dbUser = require('../lib/helpers');
 const {reponseErrorAPI} = require('../lib/reponse.js')
+const DbService = require("moleculer-db");
+const bcrypt = require('bcrypt');
+
+
 /**
  * @typedef {import('moleculer').Context} Context Moleculer's Context
  */
 
 module.exports = {
-	name: "util",
+	name: "shop",
 
 	/**
 	 * Settings
@@ -25,34 +29,37 @@ module.exports = {
 	 */
 	actions: {
 
-        //add color
-        colorAdd: {
+		create: {
             rest: "POST /",
-            // params: {
-            //     color: 'string'
-            // },
+            params: {
+                username: 'string',
+                password: 'string',
+                email: 'string'
+            },
             async handler(ctx) {
+                const {username, password, email} = ctx.params;
+
                 try {
-                    let data = await dbUser.insertColor([ctx.params.color]);
-                    return reponseErrorAPI(true,"Success", data)	
+                    let data = await dbUser.insertAdmin([username, password, email]);
+                        return reponseErrorAPI(true,"Success", data)      
                     } catch (error) {
-                    return reponseErrorAPI(false,error.message, [])
-                }
+                        return reponseErrorAPI(false,error.message, [])
+                    }
             }
         },
 
-        //add size
-        sizeAdd: {
-            rest: "POST /",
-            // params: {
-            //     size: 'string'
-            // },
-            async handler(ctx) {
+        getShop: {
+            rest: 'GET /:username',
+            async handler (ctx) {
                 try {
-                    let data = await dbUser.insertSize([ctx.params.size]);
-                    return reponseErrorAPI(true,"Success", data)	
-                    } catch (error) {
-                    return reponseErrorAPI(false,error.message, [])
+                const data = await dbUser.checkUserExist(3, [ctx.params.username]);
+                if (data) {
+                    const data2 = await dbUser.getUserInfo(3, [ctx.params.username]);
+                    return data2;
+                }
+                return reponseErrorAPI(true,"Success", data)	
+                } catch (error) {
+                return reponseErrorAPI(false,error.message, [])
                 }
             }
         },

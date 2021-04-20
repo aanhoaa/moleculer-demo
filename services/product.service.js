@@ -197,6 +197,7 @@ module.exports = {
                 }
 			}
 		},
+		
 		createCateLevelThree: {
 			rest: "POST /:id",
 			params: {
@@ -205,7 +206,7 @@ module.exports = {
 			},
 			async handler(ctx) {
 				try {
-                    let data = await dbUser.insertCateLevel(3, [ctx.params.id, ctx.params.name, ctx.params.description]);
+                    const data = await dbUser.insertCateLevel(3, [ctx.params.id, ctx.params.name, ctx.params.description]);
                    	return reponseErrorAPI(true,"Success", data)	
                     } catch (error) {
                         return reponseErrorAPI(false,error.message, [])
@@ -213,6 +214,41 @@ module.exports = {
 			}
 		},
 
+		getCategoryLevelOne: {
+			rest: "GET /:",
+			async handler(ctx) {
+				try {
+                    const data = await dbUser.getCategoryLevelOne();
+                   	return reponseErrorAPI(true,"Success", data)	
+                    } catch (error) {
+                        return reponseErrorAPI(false,error.message, [])
+                }
+			}
+		},
+
+		getCategoryLevelTwo: {
+			rest: "GET /:id",
+			async handler(ctx) {
+				try {
+                    const data = await dbUser.getCategoryLevelTwo([ctx.params.id]);
+                   	return reponseErrorAPI(true,"Success", data)	
+                    } catch (error) {
+                        return reponseErrorAPI(false,error.message, [])
+                }
+			}
+		},
+
+		getCategoryLevelThree: {
+			rest: "GET /:id",
+			async handler(ctx) {
+				try {
+                    const data = await dbUser.getCategoryLevelThree([ctx.params.id]);
+                   	return reponseErrorAPI(true,"Success", data)	
+                    } catch (error) {
+                        return reponseErrorAPI(false,error.message, [])
+                }
+			}
+		}
 
 	},
 

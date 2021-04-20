@@ -25,7 +25,7 @@ module.exports = {
       rest: "GET /",
       roles: 'user',
       async handler(ctx) {
-       return '123';
+       return ctx.meta.user;
       }
     },
 
@@ -120,6 +120,20 @@ module.exports = {
     async  handler(ctx) {
         try {
 					let data = await dbUser.userDelete([ctx.params.id]);
+					  return reponseErrorAPI(true,"Success", data)	
+				} catch (error) {
+					  return reponseErrorAPI(false,error.message, [])
+				}
+      }
+    },
+
+    //add to cart
+    addCart: {
+      rest: "POST",
+      async hanlder(ctx) {
+        const amount = ctx.params.amount;
+        try {
+					let data = await dbUser.insertCart(ctx.meta.user.id, ctx.params.productvariant_id, amount);
 					  return reponseErrorAPI(true,"Success", data)	
 				} catch (error) {
 					  return reponseErrorAPI(false,error.message, [])

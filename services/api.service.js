@@ -3,7 +3,9 @@ const { upload } = require('../lib/multer');
 const cloudinary = require('cloudinary');
 const ApiGateway = require("moleculer-web");
 const dbUser = require('../lib/helpers');
+const { ServiceBroker } = require("moleculer");
 const { ForbiddenError, UnAuthorizedError, ERR_NO_TOKEN, ERR_INVALID_TOKEN } = require("../src/errors");
+const { SSL_OP_SSLEAY_080_CLIENT_DH_BUG } = require('constants');
 /**
  * @typedef {import('moleculer').Context} Context Moleculer's Context
  * @typedef {import('http').IncomingMessage} IncomingRequest Incoming HTTP Request
@@ -15,6 +17,7 @@ cloudinary.config({
     api_key: 554259798325127,
     api_secret: 'EidUs6TZ54dIS1HRxdurHuQS4hw'
 });
+
 
 module.exports = {
 	name: "api",
@@ -35,7 +38,6 @@ module.exports = {
 		routes: [
 			//user
 			{
-				
 				path: "/users",
 
 				// Whitelist of actions (array of string mask or regex)
@@ -84,18 +86,18 @@ module.exports = {
 					}
 				},
 				
-				onBeforeCall(ctx, route, req, res) {
-					this.logger.info("onBeforeCall in protected route");
-					req.headers.authorization = req.headers.cookie;
-				},
+				// onBeforeCall(ctx, route, req, res) {
+				// 	this.logger.info("onBeforeCall in protected route");
+				// 	req.headers.authorization = req.headers.cookie;
+				// },
 
-				onAfterCall(ctx, route, req, res, data) {
-					this.logger.info("onAfterCall in protected route");
-					res.setHeader("Access-Control-Allow-Origin", "*");
-					res.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Authorization, Content-Type, Accept");
+				// onAfterCall(ctx, route, req, res, data) {
+				// 	this.logger.info("onAfterCall in protected route");
+				// 	res.setHeader("Access-Control-Allow-Origin", "*");
+				// 	res.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Authorization, Content-Type, Accept");
 
-					return data;
-				},
+				// 	return data;
+				// },
 
 				// Route error handler
 				onError(req, res, err) {
@@ -106,80 +108,7 @@ module.exports = {
 
 				
 			},
-			//category
-			{
-				path: "/category",
-
-				// Whitelist of actions (array of string mask or regex)
-				whitelist: [
-					"category.*",
-					"$node.*"
-				],
-
-				// Route CORS settings
-				cors: {
-					origin: ["https://localhost:3000", "https://localhost:4000"],
-					methods: ["GET", "OPTIONS", "POST"],
-					
-				},
-				cors: true,
-				// Disable to call not-mapped actions
-				mappingPolicy: "restrict",
-
-				
-				authorization: true,
-
-				roles: ["admin"],
-
-				// Action aliases
-				aliases: {
-					"POST create": "category.create",
-					"PUT update": "category.update",
-					"DELETE delete": "category.delete",
-					"GET list" : "category.list",
-
-					"POST child/create": "category.addCateChild",
-					"PUT child/update": "category.childUpdate",
-					"GET child/list" : "category.childList",
-					
-					"custom"(req, res) {
-						res.writeHead(201);
-						res.end();
-					}
-				},
-				autoAliases: true,
-
-				// Use bodyparser module
-				bodyParsers: {
-					json: {
-						strict: false
-					},
-					urlencoded: {
-						extended: false
-					}
-				},
-				
-				onBeforeCall(ctx, route, req, res) {
-					this.logger.info("onBeforeCall in protected route");
-					//ctx.meta.cookie= req.headers.cookie
-					req.headers.authorization = req.headers.cookie;
-				},
-
-				onAfterCall(ctx, route, req, res, data) {
-					this.logger.info("onAfterCall in protected route");
-					res.setHeader("Access-Control-Allow-Origin", "*");
-					res.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Authorization, Content-Type, Accept");
-
-					return data;
-				},
-
-				// Route error handler
-				onError(req, res, err) {
-					res.setHeader("Content-Type", "text/plain");
-					res.writeHead(err.code || 500);
-					res.end("Route error: " + err.message);
-				}	
-			},
+			
 			//product
 			{
 				path: "/product",
@@ -219,7 +148,12 @@ module.exports = {
 				aliases: {
 					// for test
 					"POST hello": "greeter.hello",
-					//
+					
+					//category
+					"GET /categoryone": "product.getCategoryLevelOne",
+					"GET /categorytwo": "product.getCategoryLevelTwo",
+					"GET /categorythree": "product.getCategoryLevelThree",
+
 					//"POST create": "product.create",
 					"POST /create"(req, res) {
 						this.createProduct(req, res)
@@ -254,7 +188,7 @@ module.exports = {
 				},
 				onBeforeCall(ctx, route, req, res) {
 					this.logger.info("onBeforeCall in protected route");
-					req.headers.authorization = req.headers.cookie;
+					//req.headers.authorization = req.headers.cookie;
 				},
 
 				onAfterCall(ctx, route, req, res, data) {
@@ -273,116 +207,7 @@ module.exports = {
 				},
 				
 			},
-			//util
-			{
-				path: "/util",
-
-				// Whitelist of actions (array of string mask or regex)
-				whitelist: [
-					"util.*",
-					"$node.*"
-				],
-
-				// Route CORS settings
-				cors: {
-					origin: ["https://localhost:3000", "https://localhost:4000"],
-					methods: ["GET", "OPTIONS", "POST"],
-					
-				},
-				cors: true,
-				// Disable to call not-mapped actions
-				mappingPolicy: "restrict",
-
-				// tạm thời đang tắt để dev
-				//authorization: true,
-
-				roles: ["admin"],
-
-				// Action aliases
-				aliases: {
-					"POST color/add": "util.colorAdd",
-					"POST size/add": "util.sizeAdd",
-					
-					
-					"custom"(req, res) {
-						res.writeHead(201);
-						res.end();
-					}
-				},
-				autoAliases: true,
-
-				// Use bodyparser module
-				bodyParsers: {
-					json: {
-						strict: false
-					},
-					urlencoded: {
-						extended: false
-					}
-				},
-				
-				onBeforeCall(ctx, route, req, res) {
-					this.logger.info("onBeforeCall in protected route");
-					//ctx.meta.cookie= req.headers.cookie
-					req.headers.authorization = req.headers.cookie;
-				},
-
-				onAfterCall(ctx, route, req, res, data) {
-					this.logger.info("onAfterCall in protected route");
-					res.setHeader("Access-Control-Allow-Origin", "*");
-					res.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Authorization, Content-Type, Accept");
-
-					return data;
-				},
-
-				// Route error handler
-				onError(req, res, err) {
-					res.setHeader("Content-Type", "text/plain");
-					res.writeHead(err.code || 500);
-					res.end("Route error: " + err.message);
-				}	
-			},
-			//upload
-			{
-				
-				path: "/upload",
-
-				authorization: false,
-
-				bodyParsers: {
-					json: false,
-					urlencoded: false
-				},
-
-				aliases: {
-					"POST /": "file.save",
-					"POST /multi": {
-						type: "multipart",
-						// Action level busboy config
-						busboyConfig: {
-							limits: {
-								files: 3
-							}
-						},
-						action: "file.save"
-					}
-				},
-
-				// https://github.com/mscdex/busboy#busboy-methods
-				busboyConfig: {
-					limits: {
-						files: 2
-					}
-				},
-
-				callOptions: {
-					meta: {
-						a: 5
-					}
-				},
-
-				mappingPolicy: "restrict" 
-			},
+			
 			//auth
 			{
 				// Path prefix to this route
@@ -449,75 +274,6 @@ module.exports = {
 					});
 				},
 			},
-			//supplier
-			{
-				path: "/supplier",
-
-				// Whitelist of actions (array of string mask or regex)
-				whitelist: [
-					"supplier.*",
-					"$node.*"
-				],
-
-				// Route CORS settings
-				cors: {
-					origin: ["https://localhost:3000", "https://localhost:4000"],
-					methods: ["GET", "OPTIONS", "POST"],
-					
-				},
-				cors: true,
-				// Disable to call not-mapped actions
-				mappingPolicy: "restrict",
-
-				// tạm thời đang tắt để dev
-				//authorization: true,
-
-				roles: ["admin"],
-
-				// Action aliases
-				aliases: {
-					"POST create": "supplier.create",
-					
-					
-					
-					"custom"(req, res) {
-						res.writeHead(201);
-						res.end();
-					}
-				},
-				autoAliases: true,
-
-				// Use bodyparser module
-				bodyParsers: {
-					json: {
-						strict: false
-					},
-					urlencoded: {
-						extended: false
-					}
-				},
-				
-				onBeforeCall(ctx, route, req, res) {
-					this.logger.info("onBeforeCall in protected route");
-					//ctx.meta.cookie= req.headers.cookie
-					req.headers.authorization = req.headers.cookie;
-				},
-
-				onAfterCall(ctx, route, req, res, data) {
-					this.logger.info("onAfterCall in protected route");
-					res.setHeader("Access-Control-Allow-Origin", "*");
-					res.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Authorization, Content-Type, Accept");
-
-					return data;
-				},
-
-				// Route error handler
-				onError(req, res, err) {
-					res.setHeader("Content-Type", "text/plain");
-					res.writeHead(err.code || 500);
-					res.end("Route error: " + err.message);
-				}	
-			},
 			//admin
 			{
 				path: "/admin",
@@ -570,6 +326,69 @@ module.exports = {
 				onBeforeCall(ctx, route, req, res) {
 					this.logger.info("onBeforeCall in protected route");
 					//ctx.meta.cookie= req.headers.cookie
+					req.headers.authorization = req.headers.cookie;
+				},
+
+				onAfterCall(ctx, route, req, res, data) {
+					this.logger.info("onAfterCall in protected route");
+					res.setHeader("Access-Control-Allow-Origin", "*");
+					res.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Authorization, Content-Type, Accept");
+
+					return data;
+				},
+
+				// Route error handler
+				onError(req, res, err) {
+					res.setHeader("Content-Type", "text/plain");
+					res.writeHead(err.code || 500);
+					res.end("Route error: " + err.message);
+				}	
+			},
+
+			//order
+			{
+				path: "/order",
+
+				// Whitelist of actions (array of string mask or regex)
+				whitelist: [
+					"order.*",
+					"$node.*"
+				],
+
+				// Route CORS settings
+				cors: {
+					origin: ["https://localhost:3000", "https://localhost:4000"],
+					methods: ["GET", "OPTIONS", "POST"],
+					
+				},
+				cors: true,
+				// Disable to call not-mapped actions
+				mappingPolicy: "restrict",
+
+				// tạm thời đang tắt để dev
+				authorization: true,
+
+				roles: ["user"],
+
+				// Action aliases
+				aliases: {
+					"POST payment": "order.payment",
+
+				},
+				autoAliases: true,
+
+				// Use bodyparser module
+				bodyParsers: {
+					json: {
+						strict: false
+					},
+					urlencoded: {
+						extended: false
+					}
+				},
+				
+				onBeforeCall(ctx, route, req, res) {
+					this.logger.info("onBeforeCall in protected route");
 					req.headers.authorization = req.headers.cookie;
 				},
 
@@ -659,9 +478,13 @@ module.exports = {
 		 */
 		authorize(ctx, route, req) {
 			let authToken;
-			const authHeader = req.headers.authorization;
+			//const authHeader = req.headers.authorization;
+			var authHeader = req.headers.cookie;
+
 			if (authHeader) {
-			const [type, value] = authHeader.split(' ');
+			const test = authHeader.substr(6);
+			const [type, value] = test.split(' ');
+
 			if (type === 'Token' || type === 'Bearer') {
 				authToken = value;
 			}
@@ -676,7 +499,8 @@ module.exports = {
 					.then((user) => {
 					if (user) {
 						this.logger.debug('Authenticated via JWT: ', user.username);
-						const { id, username } = user;
+						console.log('suer', user)
+						const {id, username } = user;
 						ctx.meta.user = {
 						id,
 						username,
@@ -693,10 +517,13 @@ module.exports = {
 				return null;
 			})
 			.then((user) => {
-				if (req.$endpoint.action.roles === 'user' && user != 'user') {
+				if (req.$endpoint.action.roles === 'user' && user.role != 'user') {
 					return this.Promise.reject(new UnAuthorizedError());
 				}
-				if (req.$endpoint.action.roles === 'admin' && user != "admin") {
+				if (req.$endpoint.action.roles === 'admin' && user.role != "admin") {
+					return this.Promise.reject(new UnAuthorizedError());
+				}
+				if (req.$endpoint.action.roles === 'shop' && user.role != "shop") {
 					return this.Promise.reject(new UnAuthorizedError());
 				}
 				
@@ -704,45 +531,118 @@ module.exports = {
 			});
 		},
 
+		// đang fix cần data từ frontend
 		async createProduct(req, res){
+			// check https://moleculer.services/docs/0.13/actions.html
 			try {
 				let data = await this.uploadFile(req, res);
-				let { name, description, cate2, cate3, brand, SKU, loop, 
-					  color, price, stock, sku
+				let { name, description, cate2, cate3, made, skup, loop, 
+					  price, stock, sku, attr, value1, value2
 				} = data.body;
 				let arrImg = [];
 				let arrImgData = [];
-				
+				var productSave = '', productVariantSave = '', variantDetailSave = '';
 				
 				// xử lý phần upload file (3 file )
 				//console.log('trace:', data.files['img1'])
-				if(data.files && data.files['img1']) {
-					arrImg.push(data.files['img1'][0].path);
-					if (data.files['img2']) arrImg.push(data.files['img2'][0].path);
-					if (data.files['img3']) arrImg.push(data.files['img3'][0].path);
+				//if(data.files && data.files['img1']) {
+					// arrImg.push(data.files['img1'][0].path);
+					// if (data.files['img2']) arrImg.push(data.files['img2'][0].path);
+					// if (data.files['img3']) arrImg.push(data.files['img3'][0].path);
 					
 					// for (let i = 0; i < arrImg.length; i++) {
 					// 	const result =  await cloudinary.v2.uploader.upload(arrImg[i]);
 					// 	arrImgData.push(result.secure_url);
 					// }
 					
+					//save to product 
+					// let status = 0;
+					// for (let i = 0; i< stock.length; i++) {
+					// 	status += parseInt(stock[i], 10);
+					// }
 					
-					let send = {status: true,message: "succes", data: data2};
-					res.end(JSON.stringify(send))
+					// productSave = await dbUser.insertProduct([
+					// 	cate2, cate3, name, description, 
+					// 	status, made, skup
+					// ]);
 
-					//handle 
-					for (let i = 0; i < loop; i++) {
-						let data2 = await dbUser.productVariantAdd([
-							name, description, 
-							cate2, cate3, brand,
-							color[i], price[i], stock[i], sku[i]
-						]);
+					// //save to pdvariant
+					// if (productSave) {
+					// 	for (let i = 0; i < loop; i++) {
+					// 		productVariantSave = await dbUser.insertProductVariant([
+					// 			productSave, name, 
+					// 			sku[i], price[i], stock[i]
+					// 		]);
+					// 	}
+					// }
+
+					//save to variantdetail
+					var json = [];
+					if (typeof(attr) === 'string') {
+						for (let i = 0; i < value1.length; i++) {
+							json.push({[attr]:value1[i]});
+						}
 					}
+					else {
+						const a = attr[0];
+						const b = attr[1];
+
+						// check lại đây đang stuck cái array với string
+						for (let i = 0; i < value1.length; i++) {
+							for (let j = 0; j < value2.length; j++) {
+								
+								if (typeof(value1) == 'string') {
+									if (typeof(value2) == 'string') {
+										json.push({
+											[a] : value1,
+											[b] : value2
+										});
+									}
+									else {
+										json.push({
+											[a] : value1,
+											[b] : value2[j]
+										});
+									}
+								}
+								else {
+									if (typeof(value2) == 'string') {
+										json.push({
+											[a] : value1[i],
+											[b] : value2
+										});
+									}
+									else {	
+										json.push({
+											[a] : value1[i],
+											[b] : value2[j]
+										});
+									}
+								}
+							}
+						}
+					}
+
+					//save to pdvd
+					//const pdDetailSave = await dbUser.insertProductVariantDetail([productVariantSave, json])
+
 					
-				} else{
-					let send = {status: false,message: "Photos must not be empty" , data: []};
-					res.end(JSON.stringify(send))
-				}
+						res.end(JSON.stringify(json));
+					//res.end(JSON.stringify('fail'));
+
+					
+
+					
+					
+				//	let send = {status: true,message: "succes", data: data2};
+				//	res.end(JSON.stringify(send))
+
+					
+					
+				// } else{
+				// 	let send = {status: false,message: "Photos must not be empty" , data: []};
+				// 	res.end(JSON.stringify(send))
+				// }
 
 			} catch (error) {
 				console.log('error', error)
