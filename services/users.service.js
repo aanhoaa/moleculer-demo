@@ -128,18 +128,18 @@ module.exports = {
     },
 
     //add to cart
-    addCart: {
-      rest: "POST",
-      async hanlder(ctx) {
-        const amount = ctx.params.amount;
-        try {
-					let data = await dbUser.insertCart(ctx.meta.user.id, ctx.params.productvariant_id, amount);
-					  return reponseErrorAPI(true,"Success", data)	
-				} catch (error) {
-					  return reponseErrorAPI(false,error.message, [])
-				}
-      }
-    }
+    // addCart: {
+    //   rest: "POST",
+    //   async hanlder(ctx) {
+    //     const amount = ctx.params.amount;
+    //     try {
+		// 			let data = await dbUser.insertCart(ctx.meta.user.id, ctx.params.productvariant_id, amount);
+		// 			  return reponseErrorAPI(true,"Success", data)	
+		// 		} catch (error) {
+		// 			  return reponseErrorAPI(false,error.message, [])
+		// 		}
+    //   }
+    // }
   },
 
   methods: {

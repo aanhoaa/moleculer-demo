@@ -236,14 +236,32 @@ module.exports = {
 
 				// Action aliases
 				aliases: {
+					//user
 					"POST login": "auth.login",
+					"GET logout": "auth.logout",
 					"POST register": "auth.register",
 					"GET verified/:username/:cftk": "users.verified",
-					"add": "math.add",
-					"add/:a/:b": "math.add",
-					"GET sub": "math.sub",
-					"POST divide": "math.div",
-					"GET wrong": "test.wrong"
+
+					// //admin
+					// "POST admin/login": "auth.adminLogin",
+
+					// //shop
+					// "POST shop/login": "auth.shopLogin",
+					async "POST admin/login"(req, res) {
+						req.$ctx.meta.path = "admin/login";
+						const {username, password} = req.body;
+						const data = await req.$ctx.call("auth.adminLogin" , {username, password});
+						
+						res.end(data);
+					},
+
+					async "POST shop/login"(req, res) {
+						req.$ctx.meta.path = "shop/login";
+						const {username, password} = req.body;
+						const data = await req.$ctx.call("auth.adminLogin" , {username, password});
+						
+						res.end(data);
+					},
 				},
 
 				// Use bodyparser module
@@ -281,6 +299,7 @@ module.exports = {
 				// Whitelist of actions (array of string mask or regex)
 				whitelist: [
 					"admin.*",
+				
 					"$node.*"
 				],
 
@@ -302,7 +321,7 @@ module.exports = {
 				// Action aliases
 				aliases: {
 					"POST create": "admin.create",
-					//"POST login": "admin.login",
+					//"POST login": "auth.adminLogin",
 					
 					
 					
@@ -480,14 +499,18 @@ module.exports = {
 			let authToken;
 			//const authHeader = req.headers.authorization;
 			var authHeader = req.headers.cookie;
-
-			if (authHeader) {
-			const test = authHeader.substr(6);
-			const [type, value] = test.split(' ');
-
-			if (type === 'Token' || type === 'Bearer') {
-				authToken = value;
+			
+			if (!authHeader) {
+				return Promise.reject(new UnAuthorizedError(ERR_NO_TOKEN));
 			}
+	
+			if (authHeader) {
+				const test = authHeader.substr(6);
+				const [type, value] = test.split(' ');
+
+				if (type === 'Token' || type === 'Bearer') {
+					authToken = value;
+				}
 			}
 			
 			return this.Promise.resolve(authToken)
@@ -500,10 +523,11 @@ module.exports = {
 					if (user) {
 						this.logger.debug('Authenticated via JWT: ', user.username);
 						console.log('suer', user)
-						const {id, username } = user;
+						const {id, username, role} = user;
 						ctx.meta.user = {
 						id,
 						username,
+						role
 						};
 						ctx.meta.token = token;
 					}
@@ -517,6 +541,7 @@ module.exports = {
 				return null;
 			})
 			.then((user) => {
+				console.log(user)
 				if (req.$endpoint.action.roles === 'user' && user.role != 'user') {
 					return this.Promise.reject(new UnAuthorizedError());
 				}
@@ -536,12 +561,14 @@ module.exports = {
 			// check https://moleculer.services/docs/0.13/actions.html
 			try {
 				let data = await this.uploadFile(req, res);
-				let { name, description, cate2, cate3, made, skup, loop, 
-					  price, stock, sku, attr, value1, value2
-				} = data.body;
+				let { variantsGroup, variantsPrice} = data.body;
 				let arrImg = [];
 				let arrImgData = [];
 				var productSave = '', productVariantSave = '', variantDetailSave = '';
+
+				variantsGroup.map(item => {
+					
+				})
 				
 				// xử lý phần upload file (3 file )
 				//console.log('trace:', data.files['img1'])

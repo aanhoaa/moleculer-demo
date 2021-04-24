@@ -182,16 +182,17 @@ module.exports = {
 		},
 
 		logout: {
-			rest: "/logout",
+			rest: "GET /",
 			handler(ctx) {
-				ctx.meta.$responseHeaders = {
-					'Set-Cookie': `Token ;Path=/;Max-Age=${Number(0)};HttpOnly=true` 
-				};
-				return '123';
+				// ctx.meta.$responseHeaders = {
+				// 	'Set-Cookie': `Token ;Path=/;Max-Age=${Number(0)};HttpOnly=true` 
+				// };
+				return 'frontend xử lý';
 			}
 		},
 
 		//admin login
+		// admin + user login onetime => set cookie token, bear
 		adminLogin: {
 			rest: "POST /",
 			params: {
@@ -200,71 +201,26 @@ module.exports = {
 			},
 			handler(ctx) {
 				const {username, password} = ctx.params;
-				return ctx.call('admin.getAdmin', {username})
+
+				const action = ctx.meta.path == 'admin/login'?'admin.getAdmin':'admin.getShop';
+				return ctx.call(action, {username})
 				.then(user => {
-					if (!user) {
-						return this.Promise.reject(new MoleculerClientError ("Invalid credentials", 400));
+					if (!user || user.data == false) {
+						return JSON.stringify({status: 'username not exist'});
 					}
 					
 					return bcrypt.compare(password, user.password).then((res2) => {
 						if (!res2) {
-							return this.Promise.reject(
-								new MoleculerClientError(
-								  'Username or password is invalid!',
-								  422,
-								  '',
-								  [{ field: 'password', message: 'is not valid' }],
-								),
-							  );
+							return 'Username or password is invalid!';
 						}
 						
 						const token = this.addToken(user, ctx.meta.user);
 						ctx.meta.$responseHeaders = {
-						'Set-Cookie': `Token = Token ${token.token};Path=/;Max-Age=${Number(60) *
+						'Set-Cookie': `Token = Token ${token.token};Path=/;Max-Age=${Number(10) *
 							60}`,
 						};
 
-						return token;
-						});
-				})
-				
-			}
-		},
-
-		//shop login
-		shopLogin: {
-			rest: "POST /",
-			params: {
-				username: 'string',
-				password: 'string'
-			},
-			handler(ctx) {
-				const {username, password} = ctx.params;
-				return ctx.call('admin.getShop', {username})
-				.then(user => {
-					if (!user) {
-						return this.Promise.reject(new MoleculerClientError ("Invalid credentials", 400));
-					}
-					
-					return bcrypt.compare(password, user.password).then((res2) => {
-						if (!res2) {
-							return this.Promise.reject(
-								new MoleculerClientError(
-								  'Username or password is invalid!',
-								  422,
-								  '',
-								  [{ field: 'password', message: 'is not valid' }],
-								),
-							  );
-						}
-						
-						const token = this.addToken(user, ctx.meta.user);
-						ctx.meta.$responseHeaders = {
-						'Set-Cookie': `Token = Token ${token.token};Path=/;Max-Age=${Number(60) *
-							60}`,
-						};
-
-						return token;
+						return 'success';
 						});
 				})
 				
